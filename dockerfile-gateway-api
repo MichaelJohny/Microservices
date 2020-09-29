@@ -1,0 +1,23 @@
+# .NET Core SDK
+FROM mcr.microsoft.com/dotnet/core/sdk:3.1.402-alpine3.12 AS build
+
+# Copy Projects
+COPY source/Gateway/Api/Microservices.Gateway.Api.csproj ./Gateway/Api/
+
+# .NET Core Restore
+RUN dotnet restore ./Gateway/Api/Microservices.Gateway.Api.csproj
+
+# Copy All Files
+COPY source/Gateway ./Gateway/
+
+# .NET Core Publish
+RUN dotnet publish ./Gateway/Api/Microservices.Gateway.Api.csproj -c Release -o /Gateway/Dist
+
+# ASP.NET Core
+FROM mcr.microsoft.com/dotnet/core/aspnet:3.1.8-alpine3.12
+RUN apk add --no-cache icu-libs
+ENV DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=false
+WORKDIR /App
+COPY --from=build /Gateway/Dist .
+EXPOSE 443
+ENTRYPOINT ["dotnet", "Microservices.Gateway.Api.dll"]

@@ -1,0 +1,11 @@
+{
+    "profiles": {
+        "Microservices.Gateway.Api": {
+            "commandName": "Project",
+            "applicationUrl": "https://localhost:8092",
+            "environmentVariables": {
+                "ASPNETCORE_ENVIRONMENT": "Development"
+            }
+        }
+    }
+}

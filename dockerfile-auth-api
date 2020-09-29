@@ -1,0 +1,23 @@
+# .NET Core SDK
+FROM mcr.microsoft.com/dotnet/core/sdk:3.1.402-alpine3.12 AS build
+
+# Copy Projects
+COPY source/Auth/Api/Microservices.Auth.Api.csproj ./Auth/Api/
+
+# .NET Core Restore
+RUN dotnet restore ./Auth/Api/Microservices.Auth.Api.csproj
+
+# Copy All Files
+COPY source/Auth ./Auth/
+
+# .NET Core Publish
+RUN dotnet publish ./Auth/Api/Microservices.Auth.Api.csproj -c Release -o /Auth/Dist
+
+# ASP.NET Core
+FROM mcr.microsoft.com/dotnet/core/aspnet:3.1.8-alpine3.12
+RUN apk add --no-cache icu-libs
+ENV DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=false
+WORKDIR /App
+COPY --from=build /Auth/Dist .
+EXPOSE 443
+ENTRYPOINT ["dotnet", "Microservices.Auth.Api.dll"]

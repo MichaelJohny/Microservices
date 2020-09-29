@@ -1,0 +1,12 @@
+{
+    "profiles": {
+        "Microservices.Product.Api": {
+            "commandName": "Project",
+            "launchUrl": "products",
+            "applicationUrl": "https://localhost:8098",
+            "environmentVariables": {
+                "ASPNETCORE_ENVIRONMENT": "Development"
+            }
+        }
+    }
+}

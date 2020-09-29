@@ -1,0 +1,171 @@
+version: "3.7"
+
+services:
+    # certificate:
+    #     image: certbot/certbot
+    consul:
+        image: consul
+        command: 'agent -dev -server -bootstrap-expect=1 -ui -client=0.0.0.0 -node=microservices-consul'
+        networks:
+            - private
+        ports:
+            - 8500:8500
+            - 8600:8600
+    registrator:
+        image: gliderlabs/registrator
+        command: -cleanup -ip=172.17.0.1 consul://consul:8500
+        depends_on:
+            - consul
+        networks:
+            - private
+        volumes:
+            - /var/run/docker.sock:/tmp/docker.sock
+    web:
+        image: microservices-web
+        build:
+            context: .
+            dockerfile: dockerfile-web
+            args:
+                ANGULAR_ENVIRONMENT: production
+        depends_on:
+            - gateway-api
+            - registrator
+        networks:
+            - public
+        ports:
+            - 8070:443
+    gateway-api:
+        image: microservices-gateway-api
+        build:
+            context: .
+            dockerfile: dockerfile-gateway-api
+        environment:
+            - ASPNETCORE_ENVIRONMENT=Container
+            - "ASPNETCORE_URLS=https://+;"
+            - ASPNETCORE_Kestrel__Certificates__Default__Path=/etc/ssl/certs/localhost.pfx
+            - ASPNETCORE_Kestrel__Certificates__Default__Password=123456
+        depends_on:
+            - customer-api
+            - product-api
+            - auth-api
+            - registrator
+        networks:
+            - public
+            - private
+        ports:
+            - 8080:443
+        volumes:
+            - ./certificates/:/etc/ssl/certs/
+    auth-api:
+        image: microservices-auth-api
+        build:
+            context: .
+            dockerfile: dockerfile-auth-api
+        environment:
+            - ConnectionStrings:Database=Server=auth-database;Database=Auth;User Id=sa;Password=P4ssW0rd!;
+            - Certificate:Path=/etc/ssl/certs/localhost.pfx
+            - Certificate:Password=123456
+            - Azure:Authority=https://login.microsoftonline.com/common
+            - Azure:Issuer=Issuer
+            - Azure:Audience=Audience
+            - Azure:ClientId=ClientId
+            - Google:ClientId=ClientId
+            - Google:ClientSecret=ClientSecret
+            - "ASPNETCORE_URLS=https://+;"
+            - ASPNETCORE_Kestrel__Certificates__Default__Path=/etc/ssl/certs/localhost.pfx
+            - ASPNETCORE_Kestrel__Certificates__Default__Password=123456
+        depends_on:
+            - auth-database
+            - registrator
+        networks:
+            - private
+        ports:
+            - 8075:443
+        volumes:
+            - ./certificates/:/etc/ssl/certs/
+    auth-database:
+        image: microsoft/mssql-server-linux
+        environment:
+            ACCEPT_EULA: Y
+            SA_PASSWORD: P4ssW0rd!
+        depends_on:
+            - registrator
+        networks:
+            - private
+        ports:
+            - 1433
+        volumes:
+            - auth-database:/var/opt/mssql
+    customer-api:
+        image: microservices-customer-api
+        build:
+            context: .
+            dockerfile: dockerfile-customer-api
+        environment:
+            - ConnectionStrings:Database=Server=customer-database;Database=Customer;User Id=sa;Password=P4ssW0rd!;
+            - "ASPNETCORE_URLS=https://+;"
+            - ASPNETCORE_Kestrel__Certificates__Default__Path=/etc/ssl/certs/localhost.pfx
+            - ASPNETCORE_Kestrel__Certificates__Default__Password=123456
+        depends_on:
+            - customer-database
+            - auth-api
+            - registrator
+        networks:
+            - private
+        ports:
+            - 443
+        volumes:
+            - ./certificates/:/etc/ssl/certs/
+    customer-database:
+        image: microsoft/mssql-server-linux
+        environment:
+            ACCEPT_EULA: Y
+            SA_PASSWORD: P4ssW0rd!
+        depends_on:
+            - registrator
+        networks:
+            - private
+        ports:
+            - 1433
+        volumes:
+            - customer-database:/var/opt/mssql
+    product-api:
+        image: microservices-product-api
+        build:
+            context: .
+            dockerfile: dockerfile-product-api
+        environment:
+            - ConnectionStrings:Database=Server=product-database;Database=Product;User Id=sa;Password=P4ssW0rd!;
+            - "ASPNETCORE_URLS=https://+;"
+            - ASPNETCORE_Kestrel__Certificates__Default__Path=/etc/ssl/certs/localhost.pfx
+            - ASPNETCORE_Kestrel__Certificates__Default__Password=123456
+        depends_on:
+            - product-database
+            - auth-api
+            - registrator
+        networks:
+            - private
+        ports:
+            - 443
+        volumes:
+            - ./certificates/:/etc/ssl/certs/
+    product-database:
+        image: microsoft/mssql-server-linux
+        environment:
+            ACCEPT_EULA: Y
+            SA_PASSWORD: P4ssW0rd!
+        depends_on:
+            - registrator
+        networks:
+            - private
+        ports:
+            - 1433
+        volumes:
+            - product-database:/var/opt/mssql
+networks:
+    public:
+    private:
+volumes:
+    auth-database:
+    customer-database:
+    product-database:

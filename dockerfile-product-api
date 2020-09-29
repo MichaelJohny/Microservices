@@ -1,0 +1,29 @@
+# .NET Core SDK
+FROM mcr.microsoft.com/dotnet/core/sdk:3.1.402-alpine3.12 AS build
+
+# Copy Projects
+COPY source/Product/Api/Microservices.Product.Api.csproj ./Product/Api/
+COPY source/Product/Application/Microservices.Product.Application.csproj ./Product/Application/
+COPY source/Product/Database/Microservices.Product.Database.csproj ./Product/Database/
+COPY source/Product/Domain/Microservices.Product.Domain.csproj ./Product/Domain/
+COPY source/Product/Model/Microservices.Product.Model.csproj ./Product/Model/
+COPY source/Shared/Domain/Microservices.Shared.Domain.csproj ./Shared/Domain/
+
+# .NET Core Restore
+RUN dotnet restore ./Product/Api/Microservices.Product.Api.csproj
+
+# Copy All Files
+COPY source/Product ./Product/
+COPY source/Shared ./Shared/
+
+# .NET Core Publish
+RUN dotnet publish ./Product/Api/Microservices.Product.Api.csproj -c Release -o /Product/Dist
+
+# ASP.NET Core
+FROM mcr.microsoft.com/dotnet/core/aspnet:3.1.8-alpine3.12
+RUN apk add --no-cache icu-libs
+ENV DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=false
+WORKDIR /App
+COPY --from=build /Product/Dist .
+EXPOSE 443
+ENTRYPOINT ["dotnet", "Microservices.Product.Api.dll"]

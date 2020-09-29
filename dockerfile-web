@@ -1,0 +1,12 @@
+FROM node:14.10.1-alpine3.12 AS angular-build
+ARG ANGULAR_ENVIRONMENT
+WORKDIR ./source/Web/
+COPY source/Web/package.json ./
+RUN npm run restore
+COPY source/Web ./
+RUN npm run $ANGULAR_ENVIRONMENT
+
+FROM nginx
+COPY --from=angular-build /source/Web/dist /usr/share/nginx/html
+COPY ./nginx/web.conf /etc/nginx/conf.d/default.conf
+COPY ./certificates /etc/ssl/private/

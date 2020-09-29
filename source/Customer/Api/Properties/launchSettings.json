@@ -1,0 +1,12 @@
+{
+    "profiles": {
+        "Microservices.Customer.Api": {
+            "commandName": "Project",
+            "launchUrl": "customers",
+            "applicationUrl": "https://localhost:8096",
+            "environmentVariables": {
+                "ASPNETCORE_ENVIRONMENT": "Development"
+            }
+        }
+    }
+}
